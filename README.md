@@ -277,6 +277,25 @@ ffplay http://192.168.3.132/hls/teams.m3u8
 ```
 最后一步，掏出手机，打开safari访问`http://192.168.3.132/hls/teams.m3u8`，就可以看到直播的视频。
 
+## STAT
+在server中加入,
+```
+# This URL provides RTMP statistics in XML
+location /stat {
+  rtmp_stat all;
+
+  # Use this stylesheet to view XML as web page
+  # in browser
+  rtmp_stat_stylesheet stat.xsl;
+}
+
+location /stat.xsl {
+  # XML stylesheet to view RTMP stats.
+  # Copy stat.xsl wherever you want
+  # and put the full directory path here
+  root /path/to/stat.xsl/;
+}
+```
 
 参考阅读:
 - [How to Build Nginx from source on Debian 9](https://www.howtoforge.com/how-to-build-nginx-from-source-on-debian-9/)
