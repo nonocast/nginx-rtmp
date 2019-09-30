@@ -304,7 +304,12 @@ location /stat.xsl {
 ## 防盗链和鉴权
 还记得前面feature中的
 > - HTTP callbacks (publish/play/record/update etc)
+
 通过play的callback到nodejs api来验证token有效性即可。
+```
+on_publish url
+on_play url
+```
 
 [nginx-rtmp-module 权限控制 - iam_shuaidaile的博客 - CSDN博客](https://blog.csdn.net/iam_shuaidaile/article/details/50599943)
 [nginx+rtmp | Hexo&Magic](https://magic-king.net/2019/05/17/nginx-rtmp/)
