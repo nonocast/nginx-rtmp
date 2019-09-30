@@ -276,6 +276,10 @@ teams-0.ts  teams-1.ts	teams-2.ts  teams-3.ts	teams-4.ts  teams-5.ts	teams-6.ts 
 ffplay http://192.168.3.132/hls/teams.m3u8
 ```
 最后一步，掏出手机，打开safari访问`http://192.168.3.132/hls/teams.m3u8`，就可以看到直播的视频。
+补充一句, hls的兼容性问题:
+- iOS和Mac OSX的safari默认支持
+- Chrome插件方式
+- 通过[video.js](https://github.com/videojs/video.js)适配， 无敌
 
 ## STAT
 在server中加入,
@@ -296,6 +300,15 @@ location /stat.xsl {
   root /path/to/stat.xsl/;
 }
 ```
+
+## 防盗链和鉴权
+还记得前面feature中的
+> - HTTP callbacks (publish/play/record/update etc)
+通过play的callback到nodejs api来验证token有效性即可。
+
+[nginx-rtmp-module 权限控制 - iam_shuaidaile的博客 - CSDN博客](https://blog.csdn.net/iam_shuaidaile/article/details/50599943)
+[nginx+rtmp | Hexo&Magic](https://magic-king.net/2019/05/17/nginx-rtmp/)
+[nginx rtmp module添加鉴权机制 - 程序园](http://www.voidcn.com/article/p-kafkptvr-bpu.html)
 
 参考阅读:
 - [How to Build Nginx from source on Debian 9](https://www.howtoforge.com/how-to-build-nginx-from-source-on-debian-9/)
