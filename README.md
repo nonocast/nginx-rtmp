@@ -68,8 +68,161 @@ $ nginx tree -L 2 .
     `-- nginx
 
 4 directories, 18 files
+
+$ /usr/local/nginx/sbin/nginx -v
+nginx version: nginx/1.17.4
+
+# link到系统路径下
+$ sudo ln -s /usr/local/nginx/sbin/nginx /usr/bin/nginx 
+$ sudo nginx -v
+nginx version: nginx/1.17.4
+
+# START
+$ sudo nginx
+```
+
+然后浏览器 http://ip:port 就可以看到Welcome to nginx!
+
+也可以用nc(netcat)来检查
+```
+~ nc localhost 80
+GET /
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+
+## NRM (nginx-rtmp-module)
+> NGINX-based Media Streaming Server
+
+Features
+- RTMP/HLS/MPEG-DASH live streaming
+- RTMP Video on demand FLV/MP4, playing from local filesystem or HTTP
+- Stream relay support for distributed streaming: push & pull models
+- Recording streams in multiple FLVs
+- H264/AAC support
+- Online transcoding with FFmpeg
+- HTTP callbacks (publish/play/record/update etc)
+- Running external programs on certain events (exec)
+- HTTP control module for recording audio/video and dropping clients
+- Advanced buffering techniques to keep memory allocations at a minimum level for faster streaming and low memory footprint
+- Proved to work with Wirecast, FMS, Wowza, JWPlayer, FlowPlayer, StrobeMediaPlayback, ffmpeg, avconv, rtmpdump, flvstreamer -and many more
+- Statistics in XML/XSL in machine- & human- readable form
+- Linux/FreeBSD/MacOS/Windows
+
+简单来说这个模块就是nginx+ffmpeg, 实现了rtmp, hls, mpeg-dash直播, 支持rtmp, hls点播, 支持录播。
+
+```
+$ git clone https://github.com/arut/nginx-rtmp-module.git
+
+# 重新回炉编译
+$ ./configure --with-pcre=../pcre-8.42 --with-zlib=../zlib-1.2.11 --with-openssl=../openssl-1.1.1a --add-module=../nginx-rtmp-module 
+# 这时会在ngx_rmtp_eval.c:170:13处有一个warning, 所以需要加上忽略warning的设置
+$ ./configure --with-pcre=../pcre-8.42 --with-zlib=../zlib-1.2.11 --with-openssl=../openssl-1.1.1a --add-module=../nginx-rtmp-module --with-debug --with-cc-opt="-Wimplicit-fallthrough=0"
+
+# configure中会显示module信息
+configuring additional modules
+adding module in ../nginx-rtmp-module
+ + ngx_rtmp_module was configured
+ 
+$ make
+$ sudo make install
+$ sudo nginx -V
+nginx version: nginx/1.17.4
+built by gcc 8.3.0 (Debian 8.3.0-6) 
+built with OpenSSL 1.1.1a  20 Nov 2018
+TLS SNI support enabled
+configure arguments: --with-pcre=../pcre-8.42 --with-zlib=../zlib-1.2.11 --with-openssl=../openssl-1.1.1a --add-module=../nginx-rtmp-module --with-debug --with-cc-opt=-Wimplicit-fallthrough=0
+```
+## VOD
+nginx.conf
+```
+rtmp { 
+  server { 
+    listen 1935; 
+    chunk_size: 4096; 
+    application vod { 
+      play /var/video; 
+    }
+  } 
+}     
+```
+
+`sudo nginx -s reload`后vlc rtmp://192.168.3.132/vod/envoy.mp4 就可以播放视频了。
+
+ffplay也ok,
+```
+# fs means fullscreen
+ffplay -fs rtmp://192.168.3.132/vod/envoy.mp4
+ffplay version 4.0 Copyright (c) 2003-2018 the FFmpeg developers
+  built with Apple LLVM version 9.1.0 (clang-902.0.39.1)
+  configuration: --prefix=/usr/local/Cellar/ffmpeg/4.0 --enable-shared --enable-pthreads --enable-version3 --enable-hardcoded-tables --enable-avresample --cc=clang --host-cflags= --host-ldflags= --enable-gpl --enable-ffplay --enable-libmp3lame --enable-libx264 --enable-libxvid --enable-opencl --enable-videotoolbox --disable-lzma
+  libavutil      56. 14.100 / 56. 14.100
+  libavcodec     58. 18.100 / 58. 18.100
+  libavformat    58. 12.100 / 58. 12.100
+  libavdevice    58.  3.100 / 58.  3.100
+  libavfilter     7. 16.100 /  7. 16.100
+  libavresample   4.  0.  0 /  4.  0.  0
+  libswscale      5.  1.100 /  5.  1.100
+  libswresample   3.  1.100 /  3.  1.100
+  libpostproc    55.  1.100 / 55.  1.100
+Input #0, flv, from 'rtmp://192.168.3.132/vod/envoy.mp4':0B f=0/0   
+  Metadata:
+    displayWidth    : 1280
+    displayHeight   : 720
+  Duration: 00:02:20.44, start: 0.000000, bitrate: N/A
+    Stream #0:0: Video: h264 (High), yuv420p(tv, bt709, progressive), 1280x720 [SAR 1:1 DAR 16:9], 24.42 fps, 23.98 tbr, 1k tbn, 47.95 tbc
+    Stream #0:1: Audio: aac (LC), 48000 Hz, stereo, fltp
 ```
 
 
+## LIVE
 
+```
+rtmp { 
+  server { 
+    listen 1935; 
+    chunk_size: 4096; 
+    application vod { 
+      play /var/video; 
+    }
+    application live {
+      live on;
+    }
+  } 
+}     
+```
+通过ffmpeg推流
+```
+$ ffmpeg -i envoy.mp4 -f flv rtmp://192.168.3.132:1935/live/envoy
+```
+-f flv是指rtmp
+然后再次通过vlc/ffplay验证即可。
+
+注: 这个1935可以省略, nginx会自动根据protocol判定。
+
+参考阅读:
+- [How to Build Nginx from source on Debian 9](https://www.howtoforge.com/how-to-build-nginx-from-source-on-debian-9/)
 
