@@ -216,12 +216,67 @@ rtmp {
 ```
 通过ffmpeg推流
 ```
-$ ffmpeg -i envoy.mp4 -f flv rtmp://192.168.3.132:1935/live/envoy
+$ ffmpeg -i envoy.mp4 -vcodec libx264 -acodec aac -f flv rtmp://192.168.3.132:1935/live/envoy
 ```
 -f flv是指rtmp
 然后再次通过vlc/ffplay验证即可。
 
 注: 这个1935可以省略, nginx会自动根据protocol判定。
+
+## HLS
+```
+# HLS
+
+# For HLS to work please create a directory in tmpfs (/tmp/hls here)
+# for the fragments. The directory contents is served via HTTP (see
+# http{} section in config)
+#
+# Incoming stream must be in H264/AAC. For iPhones use baseline H264
+# profile (see ffmpeg example).
+# This example creates RTMP stream from movie ready for HLS:
+#
+# ffmpeg -loglevel verbose -re -i movie.avi  -vcodec libx264
+#    -vprofile baseline -acodec libmp3lame -ar 44100 -ac 1
+#    -f flv rtmp://localhost:1935/hls/movie
+#
+# If you need to transcode live stream use 'exec' feature.
+#
+application hls {
+    live on;
+    hls on;
+    hls_path /tmp/hls;
+}
+
+server {
+  location /hls {
+    # Serve HLS fragments
+    types {
+        application/vnd.apple.mpegurl m3u8;
+        video/mp2t ts;
+    }
+    root /tmp;
+    add_header Cache-Control no-cache;
+  }
+}
+```
+rtmp/application/hls对应rtmp, 而server/location/hls则对应http
+
+重新推一下rtmp, 注意下推流的application name，这里对应hls
+```
+$ ffmpeg -i Teams.mp4 -vcodec libx264 -acodec aac -f flv rtmp://192.168.3.132/hls/teams
+```
+然后检查/tmp/hls
+```
+# ls /tmp/hls
+teams-0.ts  teams-1.ts	teams-2.ts  teams-3.ts	teams-4.ts  teams-5.ts	teams-6.ts  teams-7.ts	teams.m3u8
+```
+
+电脑上检查,
+```
+ffplay http://192.168.3.132/hls/teams.m3u8
+```
+最后一步，掏出手机，打开safari访问`http://192.168.3.132/hls/teams.m3u8`，就可以看到直播的视频。
+
 
 参考阅读:
 - [How to Build Nginx from source on Debian 9](https://www.howtoforge.com/how-to-build-nginx-from-source-on-debian-9/)
